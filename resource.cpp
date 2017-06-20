@@ -15,6 +15,7 @@
 #include "resource_graph.hpp"
 #include "resource_gen.hpp"
 #include "resource_base_dfu_traverse.hpp"
+#include "resource_base_dfu_io_match.hpp"
 
 using namespace std;
 using namespace boost;
@@ -46,7 +47,7 @@ struct resource_context_t {
     resource_graph_db_t db;
     multi_subsystems_t subsystems;
     map<string, f_resource_graph_t *> resource_graph_views;
-    resource_base_dfu_matcher_t matcher;
+    resource_base_dfu_matcher_t *matcher;
     resource_base_dfu_traverser_t<resource_base_dfu_matcher_t> traverser;
 };
 
@@ -168,78 +169,87 @@ static int subsystem_exist (resource_context_t *ctx, string n)
     return rc;
 }
 
-static int set_subsystems_use (resource_context_t *ctx, string n)
+static int set_subsystems_use (resource_context_t *ctx, const string &matcher_type)
 {
     int rc = 0;
-    ctx->matcher.set_matcher_name (n);
-    resource_base_dfu_matcher_t &matcher = ctx->matcher;
-    const string &matcher_type = matcher.get_matcher_name ();
+
+    auto pos = matcher_type.find("PFS1BA");
+    if (pos != string::npos) { // has PFS1BA in the matcher type string
+        if (pos == 0) { // PFS1BA is the dominant hierarchy
+            ctx->matcher = new resource_base_dfu_io_dom_matcher_t(matcher_type);
+        } else {
+            ctx->matcher = new resource_base_dfu_io_aux_matcher_t(matcher_type);
+        }
+    } else {
+        ctx->matcher = new resource_base_dfu_matcher_t(matcher_type);
+    }
 
     if (iequals (matcher_type, string ("CA"))) {
         if ( (rc = subsystem_exist (ctx, "containment")) == 0)
-            matcher.add_subsystem ("containment", "contains");
+            ctx->matcher->add_subsystem ("containment", "*");
     }
     else if (iequals (matcher_type, string ("IBA"))) {
         if ( (rc = subsystem_exist (ctx, "ibnet")) == 0)
-            matcher.add_subsystem ("ibnet", "*");
+            ctx->matcher->add_subsystem ("ibnet", "*");
     }
     else if (iequals (matcher_type, string ("IBBA"))) {
         if ( (rc = subsystem_exist (ctx, "ibnetbw")) == 0)
-            matcher.add_subsystem ("ibnetbw", "*");
+            ctx->matcher->add_subsystem ("ibnetbw", "*");
     }
     else if (iequals (matcher_type, string ("PFS1BA"))) {
         if ( (rc = subsystem_exist (ctx, "pfs1bw")) == 0)
-            matcher.add_subsystem ("pfs1bw", "*");
+            ctx->matcher->add_subsystem ("pfs1bw", "flows_down");
     }
     else if (iequals (matcher_type, string ("PA"))) {
         if ( (rc = subsystem_exist (ctx, "power")) == 0)
-            matcher.add_subsystem ("power", "*");
+            ctx->matcher->add_subsystem ("power", "*");
     }
     else if (iequals (matcher_type, string ("C+PFS1BA"))) {
         if ( (rc = subsystem_exist (ctx, "containment")) == 0)
-            matcher.add_subsystem ("containment", "contains");
+            ctx->matcher->add_subsystem ("containment", "contains");
         if ( !rc && (rc = subsystem_exist (ctx, "PFS1BA")) == 0)
-            matcher.add_subsystem ("pfs1bw", "*");
+            ctx->matcher->add_subsystem ("pfs1bw", "flows_up");
     }
     else if (iequals (matcher_type, string ("C+IBA"))) {
         if ( (rc = subsystem_exist (ctx, "containment")) == 0)
-            matcher.add_subsystem ("containment", "contains");
+            ctx->matcher->add_subsystem ("containment", "contains");
         if ( !rc && (rc = subsystem_exist (ctx, "PFS1BA")) == 0)
-            matcher.add_subsystem ("ibnet", "connected_up");
+            ctx->matcher->add_subsystem ("ibnet", "connected_up");
     }
     else if (iequals (matcher_type, string ("C+PA"))) {
         if ( (rc = subsystem_exist (ctx, "containment")) == 0)
-            matcher.add_subsystem ("containment", "contains");
+            ctx->matcher->add_subsystem ("containment", "contains");
         if ( !rc && (rc = subsystem_exist (ctx, "PA")) == 0)
-            matcher.add_subsystem ("power", "drawn");
+            ctx->matcher->add_subsystem ("power", "drawn");
     }
     else if (iequals (matcher_type, string ("IB+IBBA"))) {
         if ( (rc = subsystem_exist (ctx, "ibnet")) == 0)
-            matcher.add_subsystem ("ibnet", "connected_down");
+            ctx->matcher->add_subsystem ("ibnet", "connected_down");
         if ( !rc && (rc = subsystem_exist (ctx, "IBBA")) == 0)
-            matcher.add_subsystem ("ibnetbw", "*");
+            ctx->matcher->add_subsystem ("ibnetbw", "*");
     }
     else if (iequals (matcher_type, string ("C+P+IBA"))) {
         if ( (rc = subsystem_exist (ctx, "containment")) == 0)
-            matcher.add_subsystem ("containment", "contains");
+            ctx->matcher->add_subsystem ("containment", "contains");
         if ( (rc = subsystem_exist (ctx, "power")) == 0)
-            matcher.add_subsystem ("power", "drawn");
+            ctx->matcher->add_subsystem ("power", "drawn");
         if ( !rc && (rc = subsystem_exist (ctx, "IBA")) == 0)
-            matcher.add_subsystem ("ibnet", "connected_up");
+            ctx->matcher->add_subsystem ("ibnet", "connected_up");
     } else if (iequals (matcher_type, string ("ALL"))) {
         if ( (rc = subsystem_exist (ctx, "containment")) == 0)
-            matcher.add_subsystem ("containment", "*");
+            ctx->matcher->add_subsystem ("containment", "*");
         if ( !rc && (rc = subsystem_exist (ctx, "IBA")) == 0)
-            matcher.add_subsystem ("ibnet", "*");
+            ctx->matcher->add_subsystem ("ibnet", "*");
         if ( !rc && (rc = subsystem_exist (ctx, "IBBA")) == 0)
-            matcher.add_subsystem ("ibnetbw", "*");
+            ctx->matcher->add_subsystem ("ibnetbw", "*");
         if ( !rc && (rc = subsystem_exist (ctx, "PFS1BW")) == 0)
-            matcher.add_subsystem ("pfs1bw", "*");
+            ctx->matcher->add_subsystem ("pfs1bw", "flows_up");
         if ( (rc = subsystem_exist (ctx, "power")) == 0)
-            matcher.add_subsystem ("power", "*");
-    } 
-    else
+            ctx->matcher->add_subsystem ("power", "*");
+    }
+    else {
         rc = -1;
+    }
 
     return rc;
 }
@@ -265,7 +275,7 @@ static void write_to_graph (resource_context_t *ctx)
 {
     fstream o;
     string fn, mn;
-    mn = ctx->matcher.get_matcher_name ();
+    mn = ctx->matcher->get_matcher_name ();
     f_resource_graph_t &fg = *(ctx->resource_graph_views[mn]);
     fn = ctx->params.o_fname + "." + ctx->params.o_fext;
     o.open (fn, fstream::out);
@@ -362,13 +372,16 @@ int main (int argc, char *argv[])
     // Configure the matcher and its subsystem selector
     //
     cout << "[INFO] Load the matcher ..." << endl;
-    set_subsystems_use (ctx, ctx->params.matcher_name);
+    if (set_subsystems_use (ctx, ctx->params.matcher_name) < 0) {
+        cerr << "[ERR] error in setting subsystems" << endl;
+        return EXIT_FAILURE;
+    }
     subsystem_selector_t<edg_t, edg_subsystems_map_t>
         edgsel (get (&resource_relation_t::member_of, g),
-                ctx->matcher.get_subsystemsS ());
+                ctx->matcher->get_subsystemsS ());
     subsystem_selector_t<vtx_t, vtx_subsystems_map_t>
         vtxsel (get (&resource_pool_t::member_of, g),
-                ctx->matcher.get_subsystemsS ());
+                ctx->matcher->get_subsystemsS ());
     f_resource_graph_t *fg = new f_resource_graph_t (g, edgsel, vtxsel);
     ctx->resource_graph_views[ctx->params.matcher_name] = fg;
 
@@ -377,7 +390,7 @@ int main (int argc, char *argv[])
     //
     struct timeval st, et;
     gettimeofday (&st, NULL);
-    ctx->traverser.begin_walk (*fg, ctx->db.roots, ctx->matcher);
+    ctx->traverser.begin_walk (*fg, ctx->db.roots, *ctx->matcher);
     gettimeofday (&et, NULL);
 
     //
