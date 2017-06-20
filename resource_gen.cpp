@@ -4,6 +4,7 @@
 
 #include "resource_gen.hpp"
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/find.hpp>
 
 using namespace std;
 using namespace boost;
@@ -12,18 +13,18 @@ using namespace flux_resource_model;
 int resource_generator_t::path_prefix (const string &path,
                                int uplevel, string &prefix)
 {
-    vector<string> tokens;
-    split(tokens, path, is_any_of ("/"), token_compress_on);
-    if (uplevel >= (int) tokens.size () - 1)
-        return -1;
-    int i = 0;
-    prefix = "/";
-    for (i = 1; i < (int) tokens.size () - uplevel; i++)
-        prefix += tokens[i] + "/";
-    prefix[prefix.size ()] = '\0';
+    auto num_slashes = std::count(path.begin(), path.end(), '/');
+    if (uplevel >= num_slashes)
+      return -1;
+
+    auto range = find_nth(path, "/", num_slashes - uplevel);
+    string new_prefix(path.begin(), range.end());
+    if (new_prefix.back() != '/') {
+      new_prefix.push_back('/');
+    }
+    prefix = std::move(new_prefix);
 
     return 0;
-
 }
 
 int resource_generator_t::gen_id (const resource_graph_t &g, id_meth_t im,
