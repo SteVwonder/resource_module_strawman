@@ -18,9 +18,15 @@ MATCHERS  := CA \
 SCALES    := mini small #medium medplus large largest
 GRAPHS    := $(foreach m, $(MATCHERS), $(foreach s, $(SCALES), $(m).$(s)))
 
+DEPFLAGS  = -MD -MF $*.d
+SOURCE         := $(wildcard *.cpp)
+DEPS           := $(SOURCE:%.cpp=%.d)
+
 all: $(TARGETS)
 
-graphs: $(GRAPHS) 
+-include $(DEPS)
+
+graphs: $(GRAPHS)
 
 resource: resource.o resource_gen.o test_resource_spec.o
 	$(CPP) $(LDFLAGS) $^ -o $@
@@ -46,13 +52,13 @@ test_resource_spec: test_resource_spec.o
 	$(CPP) $(LDFLAGS) $^ -o $@
 
 %.o:%.cpp
-	$(CPP) $(CPPFLAGS) $(INCLUDES) $< -c -o $@
+	$(CPP) $(DEPFLAGS) $(CPPFLAGS) $(INCLUDES) $< -c -o $@
 
 .PHONY: clean
 
 clean:
-	rm -f *.o *~ $(TARGETS)
+	rm -f *.o *~ $(TARGETS) $(DEPS)
 
-clean-graphs: 
+clean-graphs:
 	rm -f -r graphs_dir/*
 
