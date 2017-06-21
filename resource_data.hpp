@@ -36,14 +36,14 @@ using single_subsystem_t = std::string;
 //! Key: subsystem name, Value: relationship type.
 //! Used to mark a resource pool or resource relation.
 //!
-typedef std::map<single_subsystem_t, std::string> multi_subsystems_t;
+using multi_subsystems_t = std::map<single_subsystem_t, std::string>;
 
 //!
 //! Multi-subsystem selector type --
 //! Used to filter the graph based on the subsystem names
 //! and relationship types.
 //!
-typedef std::map<single_subsystem_t, std::set<std::string>> multi_subsystemsS;
+using multi_subsystemsS = std::map<single_subsystem_t, std::set<std::string>>;
 
 //!
 //! Scheduler state (strowman) type --

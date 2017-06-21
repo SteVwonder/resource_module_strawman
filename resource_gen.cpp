@@ -1,27 +1,28 @@
 //!
 //! Resource Generation API Strawman Implementation
 //!
-
 #include "resource_gen.hpp"
 
-#include <boost/algorithm/string.hpp>
+#include <algorithm>
+#include <string>
+
+#include <boost/algorithm/string/find.hpp>
 
 using namespace flux_resource_model;
 
 int
 resource_generator_t::path_prefix(const std::string &path, int uplevel,
                                   std::string &prefix) {
-  auto num_slashes = std::count(path.begin(), path.end(), '/');
-  if (uplevel >= num_slashes)
-    return -1;
+    auto num_slashes = std::count(path.begin(), path.end(), '/');
+    if (uplevel >= num_slashes)
+      return -1;
 
-  auto range = boost::find_nth(path, "/", num_slashes - uplevel);
-  std::string new_prefix(path.begin(), range.end());
-  if (new_prefix.back() != '/') {
-    new_prefix.push_back('/');
-  }
-  prefix = std::move(new_prefix);
-  return 0;
+    auto range = boost::algorithm::find_nth(path, "/", num_slashes - uplevel);
+    prefix.assign(path.begin(), range.end());
+    if (prefix.back() != '/') {
+      prefix.push_back('/');
+    }
+    return 0;
 }
 
 int
@@ -64,8 +65,9 @@ resource_generator_t::gen_new(const vtx_t &p, const sspec_t &s, int i,
     tie(e, inserted) = add_edge(v, p, db.resource_graph);
     db.resource_graph[e].member_of[s.ssys] = s.gen_info.me2p_type;
   }
-  std::string idstr =
-    (db.resource_graph[v].id != -1) ? std::to_string(db.resource_graph[v].id) : "";
+  std::string idstr = (db.resource_graph[v].id != -1) ?
+                          std::to_string(db.resource_graph[v].id) :
+                          "";
   db.resource_graph[v].name = db.resource_graph[v].basename + idstr;
   db.resource_graph[v].paths[s.ssys] =
       db.resource_graph[p].paths[s.ssys] + "/" + db.resource_graph[v].name;
@@ -91,7 +93,8 @@ resource_generator_t::gen_children(const vtx_t &p,
       }
       break;
     case ASSOCIATE_IN:
-      for (auto ti = db.by_type[cs.type].begin(); ti != db.by_type[cs.type].end();
+      for (auto ti = db.by_type[cs.type].begin();
+           ti != db.by_type[cs.type].end();
            ti++) {
         vtx_t v = (*ti);
         db.resource_graph[v].paths[cs.ssys] =
@@ -114,9 +117,10 @@ resource_generator_t::gen_children(const vtx_t &p,
       }
       break;
     case ASSOCIATE_BY_PATH_IN:
-      for (auto ti = db.by_type[cs.type].begin(); ti != db.by_type[cs.type].end();
+      for (auto ti = db.by_type[cs.type].begin();
+           ti != db.by_type[cs.type].end();
            ti++) {
-        vtx_t v                = (*ti);
+        vtx_t v               = (*ti);
         const std::string &in = cs.gen_info.in_subsystem;
         std::string &mpt      = db.resource_graph[v].paths[in];
         std::string mpr;
@@ -201,8 +205,7 @@ resource_generator_t::get_err_message() {
 int
 resource_generator_t::read_sspecs(const std::vector<sspec_t *> &sspecs,
                                   resource_graph_db_t &db) {
-
-  for (const auto & spec : sspecs) {
+  for (const auto &spec : sspecs) {
     int res = gen_subsystem(*spec, db);
     if (res != 0)
       return res;

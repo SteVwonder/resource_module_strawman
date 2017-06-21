@@ -48,6 +48,7 @@ public:
   //!
   int
   dom_discover_vtx(vtx_t u, f_resource_graph_t &g) {
+    // TODO
     incr();
     std::cout << level_prefix() << "dom_discover_vtx: " << g[u].name << " "
               << std::endl;
@@ -71,6 +72,7 @@ public:
   dom_finish_vtx(vtx_t u,
                  std::map<single_subsystem_t, std::vector<int>> &score_map,
                  f_resource_graph_t &g) {
+    // TODO
     std::cout << level_prefix() << "dom_finish_vtx: " << g[u].name << " "
               << std::endl;
     decr();
@@ -85,6 +87,7 @@ public:
   //!
   int
   dom_tree_edge(edg_t e, f_resource_graph_t &g) {
+    // TODO
     std::cout << level_prefix() << "dom_tree_edge: " << std::endl;
     return MATCHER_SCORE_BASELINE;
   }
@@ -99,6 +102,7 @@ public:
   //!
   int
   dom_back_edge(edg_t e, f_resource_graph_t &g) {
+    // TODO
     std::cout << level_prefix() << "dom_back_edge: CYCLE! CYCLE! in the graph"
               << std::endl;
     return MATCHER_SCORE_BASELINE;
@@ -113,6 +117,7 @@ public:
   //!
   int
   dom_forward_or_cross_edge(edg_t e, f_resource_graph_t &g) {
+    // TODO
     std::cout << level_prefix()
               << "dom_forward_or_cross_edge: PROBLEM! PROBLEM!" << std::endl;
     return MATCHER_SCORE_BASELINE;
@@ -127,6 +132,7 @@ public:
   //!
   int
   aux_discover_vtx(vtx_t u, f_resource_graph_t &g) {
+    // TODO
     incr();
     std::cout << level_prefix() << "aux_discover_vtx: " << g[u].name << " "
               << std::endl;
@@ -150,6 +156,7 @@ public:
   aux_finish_vtx(vtx_t u,
                  std::map<single_subsystem_t, std::vector<int>> &score_map,
                  f_resource_graph_t &g) {
+    // TODO
     std::cout << level_prefix() << "aux_finish_vtx: " << g[u].name << " "
               << std::endl;
     decr();
@@ -165,6 +172,7 @@ public:
   //!
   int
   aux_up_edge(edg_t e, f_resource_graph_t &g) {
+    // TODO
     std::cout << level_prefix() << "aux_up_edge: " << std::endl;
     return MATCHER_SCORE_BASELINE;
   }
@@ -178,6 +186,7 @@ public:
   //!
   int
   aux_up_dom_back_edge(edg_t e, f_resource_graph_t &g) {
+    // TODO
     std::cout << level_prefix() << "aux_up_dom_back_edge: MAKE SURE THIS IS OK"
               << std::endl;
     return MATCHER_SCORE_BASELINE;
@@ -192,6 +201,7 @@ public:
   //!
   int
   aux_up_dom_forward_or_cross_edge(edg_t e, f_resource_graph_t &g) {
+    // TODO
     std::cout << level_prefix()
               << "aux_up_dom_forward_or_cross_edge: MAKE SURE THIS IS OK"
               << std::endl;

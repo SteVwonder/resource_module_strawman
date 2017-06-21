@@ -5,8 +5,6 @@ CXXFLAGS  := -O0 -g -Wall -Wextra -Wno-unused-parameter
 TARGET    := resources
 
 SOURCES   := $(wildcard *.cpp)
-OBJECTS   := $(SOURCES:%.cpp=%.o)
-DEPS      := $(SOURCES:%.cpp=%.d)
 
 BOOST_INCLUDE_DIR := /usr/local/include
 
@@ -27,6 +25,8 @@ GRAPHS    := $(foreach m, $(MATCHERS), $(foreach s, $(SCALES), $(m).$(s)))
 #### Do not edit below here without confidence
 
 CPPFLAGS += -I$(BOOST_INCLUDE_DIR)
+OBJECTS   := $(SOURCES:%.cpp=%.o)
+DEPS      := $(SOURCES:%.cpp=%.d)
 
 .PHONY: clean clean-graph all everything
 
