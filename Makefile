@@ -1,8 +1,14 @@
-TARGETS   := resource
-CPP       := g++ #clang++
-LDFLAGS   := -O0 -g
-CPPFLAGS  := -O0 -g -Wall -std=c++11
-INCLUDES  := -I/usr/include
+CXX       := g++
+CPPFLAGS  := -std=c++11 -MMD
+CXXFLAGS  := -O0 -g -Wall -Wextra -Wno-unused-parameter
+
+TARGET    := resources
+
+SOURCES   := $(wildcard *.cpp)
+OBJECTS   := $(SOURCES:%.cpp=%.o)
+DEPS      := $(SOURCES:%.cpp=%.d)
+
+BOOST_INCLUDE_DIR := /usr/local/include
 
 MATCHERS  := CA \
              IBA \
@@ -18,14 +24,22 @@ MATCHERS  := CA \
 SCALES    := mini small #medium medplus large largest
 GRAPHS    := $(foreach m, $(MATCHERS), $(foreach s, $(SCALES), $(m).$(s)))
 
-all: $(TARGETS)
+#### Do not edit below here without confidence
 
-graphs: $(GRAPHS) 
+CPPFLAGS += -I$(BOOST_INCLUDE_DIR)
 
-resource: resource.o resource_gen.o test_resource_spec.o
-	$(CPP) $(LDFLAGS) $^ -o $@
+.PHONY: clean clean-graph all everything
 
-$(GRAPHS): resource
+all: $(TARGET)
+
+everything : all resource_gen test_resource_spec
+
+graphs: $(GRAPHS)
+
+$(TARGET): $(OBJECTS)
+	$(LINK.cc) $(OUTPUT_OPTION) $^
+
+$(GRAPHS): $(TARGET)
 	mkdir -p graphs_dir/$(subst .,$(empty),$(suffix $@))
 	mkdir -p graphs_dir/$(subst .,$(empty),$(suffix $@))/images
 	$< --graph-scale=$(subst .,$(empty),$(suffix $@)) \
@@ -34,20 +48,13 @@ $(GRAPHS): resource
 	cd graphs_dir/$(subst .,$(empty),$(suffix $@)) && \
 	dot -Tsvg $@.dot -o images/$@.svg
 
-resource_gen: resource_gen.o
-	$(CPP) $(LDFLAGS) $^ -o $@
-
-test_resource_spec: test_resource_spec.o
-	$(CPP) $(LDFLAGS) $^ -o $@
-
-%.o:%.cpp
-	$(CPP) $(CPPFLAGS) $(INCLUDES) $< -c -o $@
-
-.PHONY: clean
-
 clean:
-	rm -f *.o *~ $(TARGETS)
+	rm -f $(OBJECTS) $(TARGETS) *~
 
-clean-graph: 
+veryclean: clean
+	rm -f $(DEPS)
+
+clean-graph:
 	rm -f -r graphs_dir/*
 
+-include $(DEPS)
