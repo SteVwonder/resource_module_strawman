@@ -11,17 +11,16 @@ using namespace flux_resource_model;
 int
 resource_generator_t::path_prefix(const std::string &path, int uplevel,
                                   std::string &prefix) {
-  std::vector<std::string> tokens;
-  boost::split(tokens, path, boost::is_any_of("/"), boost::token_compress_on);
-  if (uplevel >= (int)tokens.size() - 1) {
+  auto num_slashes = std::count(path.begin(), path.end(), '/');
+  if (uplevel >= num_slashes)
     return -1;
-  }
-  prefix = "/";
-  for (int i = 1; i < (int)tokens.size() - uplevel; i++) {
-    prefix += tokens[i] + "/";
-  }
-  prefix[prefix.size()] = '\0';
 
+  auto range = boost::find_nth(path, "/", num_slashes - uplevel);
+  std::string new_prefix(path.begin(), range.end());
+  if (new_prefix.back() != '/') {
+    new_prefix.push_back('/');
+  }
+  prefix = std::move(new_prefix);
   return 0;
 }
 
