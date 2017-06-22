@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 
+#include "matcher_traits.hpp"
 #include "resource_base_dfu_match.hpp"
 
 namespace flux_resource_model {
@@ -32,6 +33,8 @@ namespace flux_resource_model {
 //!
 template <typename dfu_matcher_t>
 class resource_base_dfu_traverser_t {
+  static constexpr bool valid = traits::matcher::check<dfu_matcher_t>();
+
 public:
   resource_base_dfu_traverser_t()  = default;
   ~resource_base_dfu_traverser_t() = default;

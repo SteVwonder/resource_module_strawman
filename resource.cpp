@@ -6,18 +6,20 @@
 //        -- target of 1 sec of the full tree walk for largest configuration
 // TODO: matcher/traverser plugin architecture
 
+#include <map>
+#include <cstdint>
+
+#include <getopt.h>
+#include <sys/time.h>
+
+#include <boost/algorithm/string.hpp>
+
+#include "resource_data.hpp"
 #include "resource_base_dfu_traverse.hpp"
 #include "resource_gen.hpp"
 #include "resource_graph.hpp"
 #include "resource_spec.hpp"
-#include <boost/algorithm/string.hpp>
-#include <cstdint>
-#include <getopt.h>
-#include <map>
-#include <sys/time.h>
 
-using namespace std;
-using namespace boost;
 using namespace flux_resource_model;
 
 #define OPTIONS "s:m:l:d:g:o:h"
@@ -34,9 +36,9 @@ static const struct option longopts[] = {
 
 struct test_params_t {
   t_scale_t scale;
-  string matcher_name;
-  string o_fname;
-  string o_fext;
+  std::string matcher_name;
+  std::string o_fname;
+  std::string o_fext;
   resource_graph_format_t o_format;
 };
 
@@ -46,14 +48,14 @@ struct resource_context_t {
   test_params_t params;
   resource_graph_db_t db;
   multi_subsystems_t subsystems;
-  map<string, f_resource_graph_t *> resource_graph_views;
+  std::map<std::string, f_resource_graph_t *> resource_graph_views;
   resource_base_dfu_matcher_t matcher;
   resource_base_dfu_traverser_t<resource_base_dfu_matcher_t> traverser;
 };
 
 static void
 usage(int code) {
-  cerr
+  std::cerr
       << "usage: resource-proto [OPTIONS…]\n"
          "\n"
          "Resource prototype v1.0 to help design flux resource comms. module,\n"
@@ -126,13 +128,13 @@ set_default_params(test_params_t &params) {
 }
 
 static int
-string_to_graph_format(const string &st, resource_graph_format_t &format) {
+string_to_graph_format(const std::string &st, resource_graph_format_t &format) {
   int rc = 0;
-  if (iequals(st, string("dot"))) {
+  if (boost::iequals(st, std::string("dot"))) {
     format = GRAPHVIZ_DOT;
-  } else if (iequals(st, string("graphml"))) {
+  } else if (boost::iequals(st, std::string("graphml"))) {
     format = GRAPH_ML;
-  } else if (iequals(st, string("cypher"))) {
+  } else if (boost::iequals(st, std::string("cypher"))) {
     format = NEO4J_CYPHER;
   } else {
     rc = -1;
@@ -142,7 +144,7 @@ string_to_graph_format(const string &st, resource_graph_format_t &format) {
 }
 
 static int
-graph_format_to_ext(resource_graph_format_t &format, string &st) {
+graph_format_to_ext(resource_graph_format_t &format, std::string &st) {
   int rc = 0;
   switch (format) {
   case GRAPHVIZ_DOT: st = "dot"; break;
@@ -155,7 +157,7 @@ graph_format_to_ext(resource_graph_format_t &format, string &st) {
 }
 
 static int
-subsystem_exist(resource_context_t *ctx, const string &n) {
+subsystem_exist(resource_context_t *ctx, const std::string &) {
   int rc = 0;
   if (ctx->subsystems.find("containment") == ctx->subsystems.end()) {
     rc = -1;
@@ -164,61 +166,61 @@ subsystem_exist(resource_context_t *ctx, const string &n) {
 }
 
 static int
-set_subsystems_use(resource_context_t *ctx, const string &n) {
+set_subsystems_use(resource_context_t *ctx, const std::string &n) {
   int rc = 0;
   ctx->matcher.set_matcher_name(n);
   resource_base_dfu_matcher_t &matcher = ctx->matcher;
-  const string &matcher_type           = matcher.get_matcher_name();
+  const std::string &matcher_type           = matcher.get_matcher_name();
 
-  if (iequals(matcher_type, string("CA"))) {
+  if (boost::iequals(matcher_type, std::string("CA"))) {
     if ((rc = subsystem_exist(ctx, "containment")) == 0) {
       matcher.add_subsystem("containment", "contains");
     }
-  } else if (iequals(matcher_type, string("IBA"))) {
+  } else if (boost::iequals(matcher_type, std::string("IBA"))) {
     if ((rc = subsystem_exist(ctx, "ibnet")) == 0) {
       matcher.add_subsystem("ibnet", "*");
     }
-  } else if (iequals(matcher_type, string("IBBA"))) {
+  } else if (boost::iequals(matcher_type, std::string("IBBA"))) {
     if ((rc = subsystem_exist(ctx, "ibnetbw")) == 0) {
       matcher.add_subsystem("ibnetbw", "*");
     }
-  } else if (iequals(matcher_type, string("PFS1BA"))) {
+  } else if (boost::iequals(matcher_type, std::string("PFS1BA"))) {
     if ((rc = subsystem_exist(ctx, "pfs1bw")) == 0) {
       matcher.add_subsystem("pfs1bw", "flows_up");
     }
-  } else if (iequals(matcher_type, string("PA"))) {
+  } else if (boost::iequals(matcher_type, std::string("PA"))) {
     if ((rc = subsystem_exist(ctx, "power")) == 0) {
       matcher.add_subsystem("power", "*");
     }
-  } else if (iequals(matcher_type, string("C+PFS1BA"))) {
+  } else if (boost::iequals(matcher_type, std::string("C+PFS1BA"))) {
     if ((rc = subsystem_exist(ctx, "containment")) == 0) {
       matcher.add_subsystem("containment", "contains");
     }
     if ((rc == 0) && (rc = subsystem_exist(ctx, "PFS1BA")) == 0) {
       matcher.add_subsystem("pfs1bw", "flows_up");
     }
-  } else if (iequals(matcher_type, string("C+IBA"))) {
+  } else if (boost::iequals(matcher_type, std::string("C+IBA"))) {
     if ((rc = subsystem_exist(ctx, "containment")) == 0) {
       matcher.add_subsystem("containment", "contains");
     }
     if ((rc == 0) && (rc = subsystem_exist(ctx, "PFS1BA")) == 0) {
       matcher.add_subsystem("ibnet", "connected_up");
     }
-  } else if (iequals(matcher_type, string("C+PA"))) {
+  } else if (boost::iequals(matcher_type, std::string("C+PA"))) {
     if ((rc = subsystem_exist(ctx, "containment")) == 0) {
       matcher.add_subsystem("containment", "contains");
     }
     if ((rc == 0) && (rc = subsystem_exist(ctx, "PA")) == 0) {
       matcher.add_subsystem("power", "drawn");
     }
-  } else if (iequals(matcher_type, string("IB+IBBA"))) {
+  } else if (boost::iequals(matcher_type, std::string("IB+IBBA"))) {
     if ((rc = subsystem_exist(ctx, "ibnet")) == 0) {
       matcher.add_subsystem("ibnet", "connected_down");
     }
     if ((rc == 0) && (rc = subsystem_exist(ctx, "IBBA")) == 0) {
       matcher.add_subsystem("ibnetbw", "*");
     }
-  } else if (iequals(matcher_type, string("C+P+IBA"))) {
+  } else if (boost::iequals(matcher_type, std::string("C+P+IBA"))) {
     if ((rc = subsystem_exist(ctx, "containment")) == 0) {
       matcher.add_subsystem("containment", "contains");
     }
@@ -228,7 +230,7 @@ set_subsystems_use(resource_context_t *ctx, const string &n) {
     if ((rc == 0) && (rc = subsystem_exist(ctx, "IBA")) == 0) {
       matcher.add_subsystem("ibnet", "connected_up");
     }
-  } else if (iequals(matcher_type, string("ALL"))) {
+  } else if (boost::iequals(matcher_type, std::string("ALL"))) {
     if ((rc = subsystem_exist(ctx, "containment")) == 0) {
       matcher.add_subsystem("containment", "*");
     }
@@ -254,18 +256,18 @@ set_subsystems_use(resource_context_t *ctx, const string &n) {
 static void
 write_to_graph(resource_context_t *ctx) {
   if (ctx->params.o_format != GRAPHVIZ_DOT) {
-    cout << "[ERROR] Graph format is not yet implemented:" << endl;
+    std::cout << "[ERROR] Graph format is not yet implemented:" << std::endl;
     return;
   }
 
-  fstream o;
-  string fn, mn;
+  std::fstream o;
+  std::string fn, mn;
   mn                     = ctx->matcher.get_matcher_name();
   f_resource_graph_t &fg = *(ctx->resource_graph_views[mn]);
   fn                     = ctx->params.o_fname + "." + ctx->params.o_fext;
-  o.open(fn, fstream::out);
+  o.open(fn, std::fstream::out);
 
-  cout << "[INFO] Write the target graph of the matcher..." << endl;
+  std::cout << "[INFO] Write the target graph of the matcher..." << std::endl;
   edg_subsystems_map_t emap = get(&resource_relation_t::member_of, fg);
   edge_label_writer_t ewr(emap);
   write_graphviz(o, fg, make_label_writer(get(&resource_pool_t::name, fg)),
@@ -293,8 +295,7 @@ main(int argc, char *argv[]) {
     case 's': /* --graph-scale */
       rc = test_spec_string_to_scale(optarg, ctx->params.scale);
       if (rc != 0) {
-        cerr << "[ERROR] unknown scale for --graph-scale: ";
-        cerr << optarg << endl;
+        std::cerr << "[ERROR] unknown scale for --graph-scale: "<< optarg << '\n';
         usage(1);
       }
       break;
@@ -302,8 +303,7 @@ main(int argc, char *argv[]) {
     case 'g': /* --graph-format */
       rc = string_to_graph_format(optarg, ctx->params.o_format);
       if (rc != 0) {
-        cerr << "[ERROR] unknown output format for --graph-format: ";
-        cerr << optarg << endl;
+        std::cerr << "[ERROR] unknown output format for --graph-format: " << optarg << '\n';
         usage(1);
       }
       graph_format_to_ext(ctx->params.o_format, ctx->params.o_fext);
@@ -320,11 +320,10 @@ main(int argc, char *argv[]) {
   //
   // Build a test resource specification
   //
-  vector<sspec_t *> spec_vect;
+  std::vector<sspec_t *> spec_vect;
   test_spec_build(ctx->params.scale, spec_vect);
-  vector<sspec_t *>::iterator iter;
-  for (iter = spec_vect.begin(); iter != spec_vect.end(); iter++) {
-    ctx->subsystems[(*iter)->ssys] = "";
+  for (auto & s : spec_vect) {
+    ctx->subsystems[s->ssys] = "";
   }
 
   //
@@ -332,8 +331,8 @@ main(int argc, char *argv[]) {
   //
   resource_generator_t r_gen;
   if ((rc = r_gen.read_sspecs(spec_vect, ctx->db)) != 0) {
-    cerr << "[ERROR] error in generating resources" << endl;
-    cerr << "[ERROR] " << r_gen.get_err_message() << endl;
+    std::cerr << "[ERROR] error in generating resources" << '\n'
+     << "[ERROR] " << r_gen.get_err_message() << '\n';
     return EXIT_FAILURE;
   }
   resource_graph_t &g = ctx->db.resource_graph;
@@ -341,7 +340,7 @@ main(int argc, char *argv[]) {
   //
   // Configure the matcher and its subsystem selector
   //
-  cout << "[INFO] Load the matcher ..." << endl;
+  std::cout << "[INFO] Load the matcher ..." << std::endl;
   set_subsystems_use(ctx, ctx->params.matcher_name);
   subsystem_selector_t<edg_t, edg_subsystems_map_t> edgsel(
       get(&resource_relation_t::member_of, g), ctx->matcher.get_subsystemsS());
@@ -361,13 +360,13 @@ main(int argc, char *argv[]) {
   //
   // Walk elapse time
   //
-  cout << "*********************************************************" << endl;
-  cout << "* Elapse time " << to_string(elapse_time(st, et)) << endl;
-  cout << "*   Start Time: " << to_string(st.tv_sec) << "."
-       << to_string(st.tv_usec) << endl;
-  cout << "*   End Time: " << to_string(et.tv_sec) << "."
-       << to_string(et.tv_usec) << endl;
-  cout << "*********************************************************" << endl;
+  std::cout << "*********************************************************" << '\n'
+            << "* Elapse time " << std::to_string(elapse_time(st, et)) << '\n'
+            << "*   Start Time: " << std::to_string(st.tv_sec) << "."
+            << std::to_string(st.tv_usec) << '\n'
+            << "*   End Time: " << std::to_string(et.tv_sec) << "."
+            << std::to_string(et.tv_usec) << '\n'
+            << "*********************************************************" << std::endl;
 
   //
   // Output the filtered resource graph
