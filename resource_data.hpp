@@ -7,7 +7,10 @@
 
 #include <string>
 #include <stack>
+#include <set>
 #include <map>
+
+#include <boost/graph/filtered_graph.hpp>
 
 #ifndef RESOURCE_DATA_HPP
 #define RESOURCE_DATA_HPP
@@ -76,7 +79,7 @@ namespace flux_resource_model {
             member_of.clear ();
             paths.clear ();
             properties.clear ();
-        } 
+        }
         std::string type;
         std::map<std::string, std::string> paths;
         std::string basename;
@@ -85,6 +88,7 @@ namespace flux_resource_model {
         int64_t id;
         int64_t size;
         int64_t count;
+        int64_t alloc;
         int stride;
         std::string unit;
         resource_state_t state;
